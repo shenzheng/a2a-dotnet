@@ -41,21 +41,56 @@ internal static class AgentServerUtils
 
     private static string GetAgentServerDirectoryPath()
     {
-        // Path to the AgentServer project directory when running the samples from IDE
-        var serverDirectory = Path.Combine("..", "..", "..", "..", "AgentServer");
-        if (!Directory.Exists(serverDirectory))
-        {
-            // Fallback to the path if running the samples from project folder via `dotnet run` command
-            serverDirectory = Path.Combine("..", "AgentServer");
+        const string projectFileName = "AgentServer.csproj";
 
-            if (!Directory.Exists(serverDirectory))
+        var fromEnv = Environment.GetEnvironmentVariable("A2A_AGENT_SERVER_DIR");
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+        {
+            var envPath = Path.GetFullPath(fromEnv);
+            if (IsAgentServerProjectDirectory(envPath, projectFileName))
             {
-                throw new DirectoryNotFoundException($"Could not find AgentServer directory from current location: {Directory.GetCurrentDirectory()}");
+                return envPath;
             }
         }
 
-        return serverDirectory;
+        foreach (var candidate in GetAgentServerDirectoryCandidates())
+        {
+            if (IsAgentServerProjectDirectory(candidate, projectFileName))
+            {
+                return candidate;
+            }
+        }
+
+        throw new DirectoryNotFoundException(
+            $"Could not find AgentServer directory. cwd={Directory.GetCurrentDirectory()}, " +
+            $"BaseDirectory={AppContext.BaseDirectory}. Set A2A_AGENT_SERVER_DIR or run from samples/AgentClient.");
     }
+
+    private static IEnumerable<string> GetAgentServerDirectoryCandidates()
+    {
+        var cwd = Directory.GetCurrentDirectory();
+        yield return Path.GetFullPath(Path.Combine(cwd, "..", "AgentServer"));
+        yield return Path.GetFullPath(Path.Combine(cwd, ".worktrees", "a2a-dotnet", "samples", "AgentServer"));
+
+        var probe = AppContext.BaseDirectory;
+        for (var depth = 0; depth < 12; depth++)
+        {
+            yield return Path.GetFullPath(Path.Combine(probe, "AgentServer"));
+            var parent = Directory.GetParent(probe);
+            if (parent is null)
+            {
+                break;
+            }
+
+            probe = parent.FullName;
+        }
+
+        // Legacy relative paths (IDE / dotnet run from AgentClient project directory)
+        yield return Path.GetFullPath(Path.Combine(cwd, "..", "..", "..", "..", "AgentServer"));
+    }
+
+    private static bool IsAgentServerProjectDirectory(string directoryPath, string projectFileName) =>
+        Directory.Exists(directoryPath) && File.Exists(Path.Combine(directoryPath, projectFileName));
 
     public static async Task<bool> WaitForServerReadyAsync(uint port, TimeSpan timeout, bool checkOnly = false)
     {

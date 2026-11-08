@@ -109,9 +109,15 @@ internal sealed class TaskBasedCommunicationSample
             }
         };
 
-        // 1. Create a new task by sending the message to the agent
+        // 1. Create a new task by sending the message to the agent.
+        // Blocking send requires a terminal (or input/auth-required) task when the handler ends;
+        // long-running demos intentionally end in Working, so use return-immediately (A2A spec).
         Console.WriteLine($" Sending message to the agent: {userMessage.Parts[0].Text}");
-        SendMessageResponse response = await agentClient.SendMessageAsync(new SendMessageRequest { Message = userMessage });
+        SendMessageResponse response = await agentClient.SendMessageAsync(new SendMessageRequest
+        {
+            Message = userMessage,
+            Configuration = new SendMessageConfiguration { ReturnImmediately = true },
+        });
         AgentTask agentResponse = response.Task!;
         DisplayTaskDetails(agentResponse);
 
