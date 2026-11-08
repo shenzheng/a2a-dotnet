@@ -1,0 +1,9 @@
+<Project>
+  <!-- Minimum Native AOT compiler versions for GHSA-p3jp-9v83-76w9. -->
+  <ItemGroup>
+    <KnownILCompilerPack Update="Microsoft.DotNet.ILCompiler">
+      <ILCompilerPackVersion Condition="'%(KnownILCompilerPack.TargetFramework)' == 'net8.0' and $([MSBuild]::VersionLessThan('%(KnownILCompilerPack.ILCompilerPackVersion)', '8.0.33'))">8.0.33</ILCompilerPackVersion>
+      <ILCompilerPackVersion Condition="'%(KnownILCompilerPack.TargetFramework)' == 'net10.0' and $([MSBuild]::VersionLessThan('%(KnownILCompilerPack.ILCompilerPackVersion)', '10.0.14'))">10.0.14</ILCompilerPackVersion>
+    </KnownILCompilerPack>
+  </ItemGroup>
+</Project>
